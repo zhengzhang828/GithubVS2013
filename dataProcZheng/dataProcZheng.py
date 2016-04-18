@@ -291,6 +291,8 @@ for lst in frames:
     for path in lst:
         try:
             dst_path = path.rsplit(".",1)[0]+".64x64.jpg"
+            print "dst_path: ",dst_path
+            dst_path = dst_path.replace(".\TestFolder","kaggleimgdatafinal").replace("./validate","kagglevimgdatafinal").replace("./test","kaggletimgdatafinal")
             #dst_path = "../" + path.rsplit(".",1)[0]+".64x64.jpg"
             #dst_path = dst_path.replace("./train","kaggleimgdatafinal").replace("./validate","kagglevimgdatafinal").replace("./test","kaggletimgdatafinal")
             print "dst_path: ",dst_path
@@ -303,56 +305,37 @@ for lst in frames:
             center = (cx,cy)
             size = 128
 
+            #crop and resize the image
             img = crop_resize(img, pixelspacing,center,size)
-            #print 'img, pixelspacing, center, size', (img, pixelspacing, center, size)
-            print("image shape {}".format(np.array(img).shape))
-            xmeanspacing = float(1.25826490244)
-            ymeanspacing = float(1.25826490244)
+            print(os.path.dirname(dst_path))
+            if not os.path.exists(os.path.dirname(dst_path)):
+                os.makedirs(os.path.dirname(dst_path))
+            scipy.misc.imsave(dst_path, img)
 
-            xscale = float(pixelspacing)/xmeanspacing
-            yscale = float(pixelspacing)/ymeanspacing
-
-            #temp = xscale*np.array(img)
-            xnewdim = round(xscale*np.array(img).shape[0])
-            ynewdim = round(yscale*np.array(img).shape[1])
-
-            img = transform.resize(img, (xnewdim, ynewdim))
-            img = np.uint8(img*255)
-
-            if img.shape[0] < img.shape[1]:
-                img = img.T
-            
-            short_edge = min(img.shape[:2])
-            resized_img = None
-
-            yy = int(center[1] - 64)
-            xx = int(center[0] - 64)
-
-            if yy > 0 and xx > 0 and (yy + 128) < img.shape[0] and xx + 128 < img.shape[1]:
-                resized_img = img[yy : yy + 128, xx : xx + 128]
-            else:
-                yy = int((img.shape[0] - short_edge) / 2)
-                xx = int((img.shape[1] - short_edge) / 2)
-                resized_img = img[yy : yy + 128, xx : xx + 128]
-            
-            resized_img *= 255
-            img = resized_img.astype("uint8")
-
-            #print 'img shape: ',img.shape[2]
-            cv2.imshow('resize img',img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-            
-
+            break
         except:
-            print(sys.exc_info()[0])        
+            print(sys.exc_info()[0])
+    break
+
+"""         
+            print(os.path.dirname(dst_path))
+            if not os.path.exists(os.path.dirname(dst_path)):
+                os.makedirs(os.path.dirname(dst_path))
+
+            scipy.misc.imsave(dst_path, img)
+        except:
+            print(sys.exc_info()[0])
+        
+        counter += 1
+        if counter % 100 == 0:
+            print("%d slices processed" % counter)
         break
+    print("All finished, %d slices in total" % counter)
+"""
     #print '(cx,cy): ',(cx,cy)
     #print 'imglist shape: ',imglist[0].shape
     #print 'length of imglist: ',len(imglist)
-    #print "circlesall",circlesall 
-    break
-        
+    #print "circlesall",circlesall         
 
 
     #----------------Show the image--------------------
