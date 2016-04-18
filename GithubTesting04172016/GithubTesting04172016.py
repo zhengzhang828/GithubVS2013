@@ -12,10 +12,10 @@ import dicom
 import cv2
 import glob
 import math
-#from collections import defaultdict
-#import pickle
-#import gzip
-#from skimage import data, color, img_as_ubyte
+from collections import defaultdict
+import pickle
+import gzip
+from skimage import data, color, img_as_ubyte
 from skimage.restoration import denoise_bilateral
  
 
