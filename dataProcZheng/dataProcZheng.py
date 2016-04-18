@@ -19,6 +19,24 @@ import pylab
 import cv2
 import matplotlib.pyplot as plt
 
+
+PatientSex = {}
+PatientAge = {}
+SliceLocation = {}
+
+show_images = False
+show_circles = False
+show_combined_centers = False
+show_main_center = False
+center_distance_devider = 3
+best_cluster_diviter = 25.0
+contour_roundness = 2.5
+black_removal = 200
+max_area_devider = 12
+minimal_median = 0
+xmeanspacing = 1.25826490244
+ymeanspacing = 1.25826490244
+
 #Create folder in the system
 def mkdir(fname):
     try:
@@ -26,27 +44,12 @@ def mkdir(fname):
     except:
         pass
 
-favourite_color = {"lion":"yellow", "kitty":"red"}
-outputfilename = "C:\\Users\\cheun\\Desktop\\TestFolder\\test1\\save.txt.gz"
 def save(object, filename, bin=1):
     tempfile = gzip.GzipFile(filename,"wb")
     try:
         tempfile.write(pickle.dumps(object,bin))
     finally:
         tempfile.close()
-
-#-----------Home-----------------
-#root_path = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\1"
-#train_csv_path = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\train.csv"
-#train_label_csv = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\train-label.csv"
-
-#-----------BEC------------------
-root_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\1"
-train_csv_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\train.csv"
-train_label_csv = "C:\\Users\\cheung\\Desktop\\TestFolder\\train-label.csv"
-
-#Frame refers to the file address, sort the file address and
-#based on the patients number
 
 def get_circles(image):
     v = np.median(image)
@@ -127,9 +130,6 @@ def biggest_cluster((xx,yy),centers,relax_mult=1):
     cp = centers[neighbours.index(max(neighbours))]
     return cp
 
-
-
-
 #print label_map
 def write_label_csv(fname, frames, label_map):
     fo = open(fname, "w")
@@ -142,23 +142,6 @@ def write_label_csv(fname, frames, label_map):
         else:
             fo.write("%d,0,0\n" % index)
     fo.close()
-
-PatientSex = {}
-PatientAge = {}
-SliceLocation = {}
-
-show_images = False
-show_circles = False
-show_combined_centers = False
-show_main_center = False
-center_distance_devider = 3
-best_cluster_diviter = 25.0
-contour_roundness = 2.5
-black_removal = 200
-max_area_devider = 12
-minimal_median = 0
-xmeanspacing = 1.25826490244
-ymeanspacing = 1.25826490244
 
 def crop_resize_other(img, pixelspacing):#normalize image
         #-------------------------------------
@@ -193,11 +176,6 @@ def crop_resize_other(img, pixelspacing):#normalize image
        
         return crop_img.astype("uint8")
         
-        #--------------Show dicom image---------------
-        #pylab.imshow(f.pixel_array,cmap=pylab.cm.bone)
-        #pylab.show()
-        #-------------------------------------------
-
 def crop_resize(img, pixelspacing, center, size):
 
             #print 'img, pixelspacing, center, size', (img, pixelspacing, center, size)
@@ -235,122 +213,105 @@ def crop_resize(img, pixelspacing, center, size):
     img = resized_img.astype("uint8")
     return img
 
+def write_data_csv(fname, frames, preproc):
+    for lst in frames:
+        data = []
+        imglist = []
+        circlesall = []
+        for path in lst:
+            f = dicom.read_file(path)
+            (PixelSpacingx, PixelSpacingy) = f.PixelSpacing
+            (PixelSpacingx, PixelSpacingy) = (float(PixelSpacingx), float(PixelSpacingy))
+            pixelspacing = (PixelSpacingx, PixelSpacingy)    
+            img = f.pixel_array.astype('uint8')
+            #print f.PixelSpacing
+            #print 'img: ',img
+            #cv2.imshow('img',img)
+            #cv2.waitKey()
+            img = cv2.equalizeHist(img)
+            imglist.append(crop_resize_other(img,pixelspacing))
+            #print "working"
+            #cv2.imshow('img',img)
+            #cv2.waitKey()
+            #print imglist
+        for img in imglist:
+            cir = get_circles(img)
+            circlesall.append(cir)
+            #Attention remove break
+            break
 
+        centers = []
+        
+        for i in circlesall: #i returns the center location coordinates and the radius i[0], i[1], i[2]
+            if i is None:
+                continue
+            for c in i[0,:]:
+                centers.append([c[0],c[1]])
+        print ("Looking for biggest_cluster {}".format(len(centers)))
+        (xx,yy) = (None,None)
+        (cx,cy) = (None,None)
+    
+        relax_mult = 1
+        if len(imglist)>0:
+            (xx,yy) = imglist[0].shape
+            #biggest cluster
+            (cx,cy) = biggest_cluster((xx,yy),centers)
+            print("center {}".format((cx,cy)))
+        else:
+            continue
+    
+        #print "lst: ",lst
+        for path in lst:
+            try:
+                dst_path = path.rsplit(".",1)[0]+".64x64.jpg"
+                print "dst_path: ",dst_path
+                dst_path = dst_path.replace("train","kaggleimgdatafinal").replace("validate","kagglevimgdatafinal").replace("test","kaggletimgdatafinal")
+                #dst_path = "../" + path.rsplit(".",1)[0]+".64x64.jpg"
+                #dst_path = dst_path.replace("./train","kaggleimgdatafinal").replace("./validate","kagglevimgdatafinal").replace("./test","kaggletimgdatafinal")
+                print "dst_path: ",dst_path
+                f = dicom.read_file(path,force=True)
+                (PixelSpacingx,PixelSpacingy) = f.PixelSpacing
+                (PixelSpacingx,PixelSpacingy) = (float(PixelSpacingx),float(PixelSpacingy))
+            
+                img = f.pixel_array.astype(float) / np.max(f.pixel_array)
+                pixelspacing = PixelSpacingx
+                center = (cx,cy)
+                #size = 128
+
+                #crop and resize the image
+                img = preproc(img, pixelspacing,center,size)
+                print(os.path.dirname(dst_path))
+                if not os.path.exists(os.path.dirname(dst_path)):
+                    os.makedirs(os.path.dirname(dst_path))
+                scipy.misc.imsave(dst_path, img)
+
+                break
+            except:
+                print(sys.exc_info()[0])
+        break
+    return result
+
+#--------------Show dicom image---------------
+        #pylab.imshow(f.pixel_array,cmap=pylab.cm.bone)
+        #pylab.show()
+#-------------------------------------------
+
+#-----------Home-----------------
+#root_path = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\1"
+#train_csv_path = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\train.csv"
+#train_label_csv = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\train-label.csv"
+
+#-----------BEC------------------
+#root_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\1"
+train_csv_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\train.csv"
+train_label_csv = "C:\\Users\\cheung\\Desktop\\TestFolder\\train-label.csv"
+train_64x64_data = "C:\\Users\\cheung\\Desktop\\TestFolder\\train-64x64-data.csv"
+
+random.seed(10)
 frames = get_frames(root_path)
 label_map = get_label_map(train_csv_path)
-#print frames
-#print label_map
 
-for lst in frames:
-    data = []
-    imglist = []
-    circlesall = []
-    for path in lst:
-        f = dicom.read_file(path)
-        (PixelSpacingx, PixelSpacingy) = f.PixelSpacing
-        (PixelSpacingx, PixelSpacingy) = (float(PixelSpacingx), float(PixelSpacingy))
-        pixelspacing = (PixelSpacingx, PixelSpacingy)    
-        img = f.pixel_array.astype('uint8')
-        #print f.PixelSpacing
-        #print 'img: ',img
-        #cv2.imshow('img',img)
-        #cv2.waitKey()
-        img = cv2.equalizeHist(img)
-        imglist.append(crop_resize_other(img,pixelspacing))
-        #print "working"
-        #cv2.imshow('img',img)
-        #cv2.waitKey()
-        #print imglist
-    for img in imglist:
-        cir = get_circles(img)
-        circlesall.append(cir)
-        #Attention remove break
-        break
-
-    centers = []
-        
-    for i in circlesall: #i returns the center location coordinates and the radius i[0], i[1], i[2]
-        if i is None:
-            continue
-        for c in i[0,:]:
-            centers.append([c[0],c[1]])
-    print ("Looking for biggest_cluster {}".format(len(centers)))
-    (xx,yy) = (None,None)
-    (cx,cy) = (None,None)
-    
-    relax_mult = 1
-    if len(imglist)>0:
-        (xx,yy) = imglist[0].shape
-        #biggest cluster
-        (cx,cy) = biggest_cluster((xx,yy),centers)
-        print("center {}".format((cx,cy)))
-    else:
-        continue
-    
-    #print "lst: ",lst
-    for path in lst:
-        try:
-            dst_path = path.rsplit(".",1)[0]+".64x64.jpg"
-            print "dst_path: ",dst_path
-            dst_path = dst_path.replace(".\TestFolder","kaggleimgdatafinal").replace("./validate","kagglevimgdatafinal").replace("./test","kaggletimgdatafinal")
-            #dst_path = "../" + path.rsplit(".",1)[0]+".64x64.jpg"
-            #dst_path = dst_path.replace("./train","kaggleimgdatafinal").replace("./validate","kagglevimgdatafinal").replace("./test","kaggletimgdatafinal")
-            print "dst_path: ",dst_path
-            f = dicom.read_file(path,force=True)
-            (PixelSpacingx,PixelSpacingy) = f.PixelSpacing
-            (PixelSpacingx,PixelSpacingy) = (float(PixelSpacingx),float(PixelSpacingy))
-            
-            img = f.pixel_array.astype(float) / np.max(f.pixel_array)
-            pixelspacing = PixelSpacingx
-            center = (cx,cy)
-            size = 128
-
-            #crop and resize the image
-            img = crop_resize(img, pixelspacing,center,size)
-            print(os.path.dirname(dst_path))
-            if not os.path.exists(os.path.dirname(dst_path)):
-                os.makedirs(os.path.dirname(dst_path))
-            scipy.misc.imsave(dst_path, img)
-
-            break
-        except:
-            print(sys.exc_info()[0])
-    break
-
-"""         
-            print(os.path.dirname(dst_path))
-            if not os.path.exists(os.path.dirname(dst_path)):
-                os.makedirs(os.path.dirname(dst_path))
-
-            scipy.misc.imsave(dst_path, img)
-        except:
-            print(sys.exc_info()[0])
-        
-        counter += 1
-        if counter % 100 == 0:
-            print("%d slices processed" % counter)
-        break
-    print("All finished, %d slices in total" % counter)
-"""
-    #print '(cx,cy): ',(cx,cy)
-    #print 'imglist shape: ',imglist[0].shape
-    #print 'length of imglist: ',len(imglist)
-    #print "circlesall",circlesall         
-
-
-    #----------------Show the image--------------------
-    #for i in circles[0,:]:
-    # draw the outer circle
-    #    cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
-    # draw the center of the circle
-    #    cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
-    #cv2.imshow('detected circles',img)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-    #---------------------------------------------------
-    
-
-    
-
+write_label_csv(train_label_csv, frames, get_label_map(train_csv_path))
+train_lst = write_data_csv(train_64x64_data,frames,lambda x,y,z: crop_resize(x,y,z,128))
 
 
