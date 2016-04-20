@@ -154,7 +154,7 @@ def crop_resize_other(img, pixelspacing):#normalize image
         xmeanspacing = 1.25826490244
         ymeanspacing = 1.25826490244
 
-        pixelspacing = (PixelSpacingx, PixelSpacingy)
+        #pixelspacing = (PixelSpacingx, PixelSpacingy)
         xmeanspacing = float(xmeanspacing)
         ymeanspacing = float(ymeanspacing)
         xscale = float(pixelspacing[0])/xmeanspacing
@@ -213,7 +213,8 @@ def crop_resize(img, pixelspacing, center, size):
     img = resized_img.astype("uint8")
     return img
 
-def write_data_csv(fname, frames, preproc):
+def write_data_csv(frames, preproc):
+    result = [] 
     for lst in frames:
         data = []
         imglist = []
@@ -264,11 +265,13 @@ def write_data_csv(fname, frames, preproc):
         for path in lst:
             try:
                 dst_path = path.rsplit(".",1)[0]+".64x64.jpg"
+                print "place 1"
                 print "dst_path: ",dst_path
                 dst_path = dst_path.replace("train","kaggleimgdatafinal").replace("validate","kagglevimgdatafinal").replace("test","kaggletimgdatafinal")
                 #dst_path = "../" + path.rsplit(".",1)[0]+".64x64.jpg"
                 #dst_path = dst_path.replace("./train","kaggleimgdatafinal").replace("./validate","kagglevimgdatafinal").replace("./test","kaggletimgdatafinal")
-                print "dst_path: ",dst_path
+                
+                #print "dst_path: ",dst_path
                 f = dicom.read_file(path,force=True)
                 (PixelSpacingx,PixelSpacingy) = f.PixelSpacing
                 (PixelSpacingx,PixelSpacingy) = (float(PixelSpacingx),float(PixelSpacingy))
@@ -302,7 +305,7 @@ def write_data_csv(fname, frames, preproc):
 #train_label_csv = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\train-label.csv"
 
 #-----------BEC------------------
-#root_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\1"
+root_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\1"
 train_csv_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\train.csv"
 train_label_csv = "C:\\Users\\cheung\\Desktop\\TestFolder\\train-label.csv"
 train_64x64_data = "C:\\Users\\cheung\\Desktop\\TestFolder\\train-64x64-data.csv"
@@ -312,6 +315,6 @@ frames = get_frames(root_path)
 label_map = get_label_map(train_csv_path)
 
 write_label_csv(train_label_csv, frames, get_label_map(train_csv_path))
-train_lst = write_data_csv(train_64x64_data,frames,lambda x,y,z: crop_resize(x,y,z,128))
+train_lst = write_data_csv(frames,lambda x,y,z: crop_resize(x,y,z,128))
 
 
