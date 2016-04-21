@@ -34,8 +34,7 @@ contour_roundness = 2.5
 black_removal = 200
 max_area_devider = 12
 minimal_median = 0
-xmeanspacing = 1.25826490244
-ymeanspacing = 1.25826490244
+
 
 #Create folder in the system
 def mkdir(fname):
@@ -135,7 +134,9 @@ def write_label_csv(fname, frames, label_map):
     fo = open(fname, "w")
     for lst in frames:
         #print(lst[0])
-        index = int(lst[0].split("\\")[5])
+        print "lst[0]", lst[0]
+        #-------------------split the root and extract the folder number------------------
+        index = int(lst[0].split("\\")[6])
         #print label_map[index]
         if label_map != None:
             fo.write(label_map[index])
@@ -239,7 +240,7 @@ def write_data_csv(frames, preproc):
             cir = get_circles(img)
             circlesall.append(cir)
             #Attention remove break
-            break
+            #break
 
         centers = []
         
@@ -267,7 +268,11 @@ def write_data_csv(frames, preproc):
                 dst_path = path.rsplit(".",1)[0]+".64x64.jpg"
                 print "place 1"
                 print "dst_path: ",dst_path
-                dst_path = dst_path.replace("train","kaggleimgdatafinal").replace("validate","kagglevimgdatafinal").replace("test","kaggletimgdatafinal")
+                dst_path = dst_path.replace("train","kaggleimgdatafinal")
+                #-------AWS path----------
+                #dst_path = dst_path.replace("train","kaggleimgdatafinal").replace("validate","kagglevimgdatafinal").replace("test","kaggletimgdatafinal")
+                #--------------------------
+                print "place 2"
                 #dst_path = "../" + path.rsplit(".",1)[0]+".64x64.jpg"
                 #dst_path = dst_path.replace("./train","kaggleimgdatafinal").replace("./validate","kagglevimgdatafinal").replace("./test","kaggletimgdatafinal")
                 
@@ -282,16 +287,16 @@ def write_data_csv(frames, preproc):
                 #size = 128
 
                 #crop and resize the image
-                img = preproc(img, pixelspacing,center,size)
+                img = preproc(img, pixelspacing,center)
                 print(os.path.dirname(dst_path))
                 if not os.path.exists(os.path.dirname(dst_path)):
                     os.makedirs(os.path.dirname(dst_path))
                 scipy.misc.imsave(dst_path, img)
-
-                break
+                #--------------------Attention remove break----------------------
+                #break
             except:
                 print(sys.exc_info()[0])
-        break
+        #---------------Attention remove break--------------------------
     return result
 
 #--------------Show dicom image---------------
@@ -305,7 +310,7 @@ def write_data_csv(frames, preproc):
 #train_label_csv = "C:\\Users\\Zheng Zhang\\Desktop\\TestFolder\\train-label.csv"
 
 #-----------BEC------------------
-root_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\1"
+root_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\train\\1"
 train_csv_path = "C:\\Users\\cheung\\Desktop\\TestFolder\\train.csv"
 train_label_csv = "C:\\Users\\cheung\\Desktop\\TestFolder\\train-label.csv"
 train_64x64_data = "C:\\Users\\cheung\\Desktop\\TestFolder\\train-64x64-data.csv"
