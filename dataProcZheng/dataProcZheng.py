@@ -144,7 +144,38 @@ def write_label_csv(fname, frames, label_map):
             fo.write("%d,0,0\n" % index)
     fo.close()
 
-def crop_resize_other(img, pixelspacing):#normalize image
+def crop_resize_other(img, pixelspacing ):
+   print("image shape {}".format(np.array(img).shape))
+
+   xmeanspacing = float(1.25826490244)
+   ymeanspacing = float(1.25826490244)
+
+   xscale = float(pixelspacing) / xmeanspacing
+   yscale = float(pixelspacing) / ymeanspacing
+   xnewdim = round( xscale * np.array(img).shape[0])
+   ynewdim = round( yscale * np.array(img).shape[1])
+   img = transform.resize(img, (xnewdim, ynewdim))
+  
+   #img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX) 
+   #img = auto_canny(img)
+   img = denoise_bilateral(img, sigma_range=0.05, sigma_spatial=15)
+
+   #im = cv2.normalize(im, None, 0, 255, cv2.NORM_MINMAX) 
+   #img = img.Canny(im,128,128)
+   """crop center and resize"""
+   if img.shape[0] < img.shape[1]:
+       img = img.T
+   # we crop image from center
+   short_egde = min(img.shape[:2])
+   #Question, notice, attention, yy, xx, why shape 0 is y? should shape 0 is xx?
+
+   yy = int((img.shape[0] - short_egde) / 2)
+   xx = int((img.shape[1] - short_egde) / 2)
+   crop_img = img[yy : yy + short_egde, xx : xx + short_egde]
+   crop_img *= 255
+   return crop_img.astype("uint8")
+
+def crop_resize_other_1(img, pixelspacing):#normalize image
         #-------------------------------------
         #thresholdval = 20
         #r,g,b = img.splitChannels()
